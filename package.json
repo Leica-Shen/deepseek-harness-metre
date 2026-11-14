@@ -1,0 +1,47 @@
+{
+  "name": "@local/metre",
+  "version": "4.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Metre 格律：度量驱动的幻灯片引擎。真实字宽 + 最优断行 + 纵向分布律 + 留白审计；五种设计语言各配中文字族；联网取图并支持形状/文字填充。",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "studio",
+    "design",
+    "SKILL.md",
+    "VERSIONS.md",
+    "说明.md",
+    "cordis.patch.yml",
+    "requirements.txt"
+  ],
+  "keywords": [
+    "dsh",
+    "dsh-bundle",
+    "dsh-plugin",
+    "ppt",
+    "powerpoint",
+    "pptx",
+    "layout-engine",
+    "design-system",
+    "typography"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "displayName": "格律 Metre",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Leica-Shen/deepseek-harness-metre.git"
+  },
+  "homepage": "https://github.com/Leica-Shen/deepseek-harness-metre#readme",
+  "bugs": {
+    "url": "https://github.com/Leica-Shen/deepseek-harness-metre/issues"
+  }
+}

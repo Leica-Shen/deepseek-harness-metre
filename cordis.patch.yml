@@ -1,0 +1,11 @@
+# metre bundle patch —— 只注册一个 skill provider，不注册工具。
+#
+# 为什么不注册工具：本机已装 dsh-ppt-master（ppt_* 工具集），再注册一套
+# 同名语义的工具会让模型在两套 API 间犹豫。metre 的定位是
+# 「一份可执行的视觉规格 + 一个 CLI」，模型读 SKILL.md 后直接跑
+# ${SKILL_DIR}/scripts/cli.py 即可，不需要工具包装。
+#
+# 装载后效果：技能列表里出现 metre；其它插件不受影响。
+- insert:
+    - id: metre
+      name: '@local/metre'

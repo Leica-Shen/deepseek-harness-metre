@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.DS_Store
+*.pptx
+*-体检.md
+preview/*.png
+.pytest_cache/
+distillation/
+评审证据/
+*.bundle
