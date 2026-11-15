@@ -71,6 +71,29 @@ python3 -m studio.cli selftest
 
 `--png` uses Keynote on macOS; any `pptx → png` exporter works.
 
+## Four knobs, none required
+
+| knob | values | default |
+| --- | --- | --- |
+| `language` | `sweet` `iron` `paper` `grid` `manifesto` | `grid` |
+| `variation` | int / string / `auto` | seeded from the content itself — same deck reproduces, different decks get different faces |
+| `fonts` | `auto` or `{ea_display, ea_body, ea_micro}` | picked from a tone-matched pool (LXGW WenKai / Source Han Serif / Sans / Alibaba PuHuiTi / Smiley Sans) |
+| `color_mode` | `language` / `image` (+ `accent_from_image`) | paper from the language; each page is still tinted by its own image |
+
+Colours are no longer locked: `color_mode: "image"` derives paper tint, panel and accent from the
+cover photograph, and any page can override with `accent` / `panel`.
+
+Layouts rotate per deck from the language's pool (`side-r`, `side-l`, `stack`, `full`, `inset`) —
+the planner never uses the same media placement twice in a row.
+
+## Machine-readable contract
+
+```bash
+python3 -m studio.cli spec --json      # languages, page kinds, required keys, style fields
+```
+
+`schema/deck.schema.json` validates a deck before you build it.
+
 ## Content model
 
 ```json

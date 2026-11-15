@@ -77,6 +77,11 @@ def main(argv=None):
         return 0
     cmd = argv[0]
     if cmd == "spec":
+        if "--json" in argv:
+            import json as _json
+            from .api import spec as _spec
+            print(_json.dumps(_spec(), ensure_ascii=False, indent=2))
+            return 0
         from . import languages as LG
         for lid, l in LG.LANGS.items():
             print(f"{lid:<10} {l.name}  {l.display}/{l.ea_display}  "

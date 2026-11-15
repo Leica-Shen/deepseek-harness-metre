@@ -106,6 +106,9 @@ class Ctx:
         if not self.dark and LG._lum(self.panel_c) < 0.45:
             # 语言面板本身是深色（铁报），浅色页上改用 6% 墨色 tint
             self.panel_c = PAL.mix(self.bg, "#000000", 0.06)
+        # 页面级覆盖：这张图的强调色 / 这块底板，比语言默认更合适
+        if page.get("panel"):
+            self.panel_c = str(page["panel"])
         self.bg_hint = self.bg
         self.meta_c = ("C7CDD6" if self.dark else ink_on(lang.meta_c, self.bg, 4.8))
         self.rule_c = ("46505E" if self.dark else ink_on(lang.rule_c, self.bg, 1.25))
@@ -114,6 +117,8 @@ class Ctx:
         elif self.pal and mode == "both":
             cand = self.pal["main"]
             self.accent = cand if contrast(cand, self.bg) >= 2.6 else lang.accent
+        if page.get("accent"):
+            self.accent = str(page["accent"])
         else:
             self.accent = lang.accent
         # 大数字/标签可用的「图片主色」
@@ -1711,7 +1716,7 @@ VARIANTS = {
 }
 
 
-def _pick_variant(kind, page, recent):
+def _pick_variant(kind, page, recent, rng=None):
     cands = list(VARIANTS.get(kind, ["plain"]))
     if kind == "points":
         n = len(page.get("items") or page.get("body") or [])
@@ -1732,7 +1737,20 @@ def _pick_variant(kind, page, recent):
     return cands[0] if cands else "plain"
 
 
-def plan(pages, lang):
+def _rng_key(pages, variation):
+    """种子：没给 variation 就用内容自身（标题/页型序列）作种子，保证可复现。"""
+    import hashlib
+    if isinstance(variation, int):
+        seed = f"v:{variation}"
+    elif isinstance(variation, str) and variation.strip() and variation.strip().lower() != "auto":
+        seed = variation.strip()
+    else:
+        seed = "|".join(str(p.get("title") or p.get("statement") or p.get("quote") or "")
+                        for p in pages)
+    return int(hashlib.sha1(seed.encode("utf8")).hexdigest()[:8], 16)
+
+
+def plan(pages, lang, variation=None):
     """册级节奏：先定色调，再定变体。
 
     色调规则（不是随机，是可解释的）：
@@ -1742,18 +1760,20 @@ def plan(pages, lang):
       能承受反白的页型上；
     - 浅色板每三页一次，用来打断白纸，不连用。
     """
+    import random as _random
+    rng = _random.Random(_rng_key(pages, variation))
     n = len(pages)
     kinds = [_kind(p) for p in pages]
     dark_ok = "dark" in lang.tones
     tint_ok = str(lang.panel_c).upper() != str(lang.paper).upper()
     dark_slots, tint_slots = set(), set()
     if dark_ok and n >= 5:
-        dark_slots.add(min(n - 2, max(2, int(round(n * 0.45)) - 1)))
+        dark_slots.add(min(n - 2, max(2, int(round(n * 0.45)) - 1 + rng.choice((-1, 0, 1)))))
     if dark_ok and n >= 8:
         dark_slots.add(max(3, n - 3))
     if tint_ok:
         for i in range(2, n - 1):
-            if (i - 2) % 3 == 1:
+            if (i - 2 - rng.randrange(0, 3)) % 3 == 1:
                 tint_slots.add(i)
     heavy = ("statement", "split", "quote", "metrics", "compare")
 
@@ -1766,13 +1786,14 @@ def plan(pages, lang):
         if kind in ("split", "points", "metrics", "table", "chart", "imagepanel"):
             want = p.get("layout") or p.get("variant")
             if not want or want in ("right", "left"):
-                cand = MEDIA_LAYOUTS[i % len(MEDIA_LAYOUTS)]
+                pool = getattr(lang, "layout_pool", None) or MEDIA_LAYOUTS
+                cand = pool[(i + rng.randrange(len(pool))) % len(pool)]
                 if cand == last_media:
                     cand = MEDIA_LAYOUTS[(i + 1) % len(MEDIA_LAYOUTS)]
                 p["layout"] = cand
                 last_media = cand
         if kind == "closing" and not p.get("variant"):
-            p["variant"] = CLOSING_VARIANTS[i % len(CLOSING_VARIANTS)]
+            p["variant"] = rng.choice(CLOSING_VARIANTS)
         tone = str(p.get("tone") or "").strip().lower()
         if tone not in ("light", "dark", "tint", "sand"):
             tone = ""
@@ -1798,7 +1819,7 @@ def plan(pages, lang):
         if tone == "tint" and LG._lum(lang.panel_c) < 0.42:
             tone = "dark"
         r = recent.setdefault(kind, [])
-        v = p.get("variant") or _pick_variant(kind, p, r)
+        v = p.get("variant") or _pick_variant(kind, p, r, rng)
         r.append(v)
         out.append({"page": p, "kind": kind, "tone": tone, "variant": v})
     return out
@@ -1911,6 +1932,14 @@ def build_deck(content, base_dir="."):
     if content.get("style"):
         lang = LG.derive(lang, content["style"])
     raw = copy.deepcopy(content.get("pages") or [])
+    # 字体不锁死：没指定就按气质从池里取一组；给了 dict 就覆盖
+    fonts = content.get("fonts")
+    if isinstance(fonts, dict):
+        lang = LG.derive(lang, fonts)
+    elif fonts in (None, "auto", True):
+        n_pool = len(LG.FONT_POOL.get(lang.font_tone, [1]))
+        seed = _rng_key(raw, content.get("variation")) % max(1, n_pool)
+        lang = LG.derive(lang, LG.pick_fonts(lang, seed=seed))
     if not raw:
         raise ValueError("内容里没有 pages")
     brand = content.get("brand") or content.get("meta") or ""
@@ -1925,13 +1954,19 @@ def build_deck(content, base_dir="."):
                 theme_img = cand if os.path.isabs(str(cand)) else os.path.normpath(
                     os.path.join(base_dir, str(cand)))
                 break
-    items = plan(raw, lang)
+    items = plan(raw, lang, variation=content.get("variation"))
     pool = _pool_from(content, base_dir)
     if pool:
         assign_images(items, pool)
     if not theme_img and pool:
         theme_img = pool[0]
     deck_pal = PAL.page_palette(theme_img, lang) if theme_img else None
+    if deck_pal and str(content.get("color_mode") or "").lower() == "image":
+        ov = {"panel_c": deck_pal["pale"]}
+        if content.get("accent_from_image"):
+            ov["accent"] = deck_pal["main"]
+            ov["accent2"] = deck_pal["deep"]
+        lang = LG.derive(lang, ov)
     pages = []
     for i, it in enumerate(items, 1):
         p = dict(it["page"])

@@ -84,6 +84,8 @@ class Lang:
     # 对齐倾向：left / center / mixed；center_kinds 里列的页型默认居中
     align_bias: str = "left"
     center_kinds: tuple = ()
+    font_tone: str = "modern"        # 从 FONT_POOL 里选字体的气质
+    layout_pool: tuple = ()          # 偏好的图片布置；空 = 全轮换
     leading: float = 1.14           # 标题行距
     body_leading: float = 1.42      # 正文行距
     tracking_label: float = 1.2     # 小标签字距 pt（只有大写标签用）
@@ -257,6 +259,9 @@ MANIFESTO = Lang(
     note="9pt Arial 只给标注；正文用 595959，不用纯黑；标题不加字距。",
 )
 
+_TONE = {"sweet": "warm", "iron": "sharp", "paper": "classic",
+         "grid": "modern", "manifesto": "classic"}
+
 _TUNE = {
     # 圆角比例一律 Office 默认；阴影只给甜本与纸案；对齐按实测倾向
     "sweet": dict(radius_ratio=0.1667, shadow=(15.0, 5.0, 45.0, 30),
@@ -272,11 +277,34 @@ _TUNE = {
                       center_kinds=("statement", "quote", "closing")),
 }
 
-LANGS = {l.id: replace(l, **_TUNE[l.id])
+LANGS = {l.id: replace(l, font_tone=_TONE[l.id], **_TUNE[l.id])
          for l in (SWEET, IRON, PAPER, GRID, MANIFESTO)}
 
 # 外部风格档案（如字帖 Copybook 量出来的）允许覆盖的白名单——
 # 只放「设计语言」层，不放页面内容层
+# 字体池：按气质分组，同一组里可换（不再锁死一对字体）
+FONT_POOL = {
+    "warm": [("LXGW WenKai", "Source Han Sans CN", "Alibaba PuHuiTi 3.0"),
+             ("Source Han Serif CN", "Source Han Sans CN", "Alibaba PuHuiTi 3.0")],
+    "modern": [("Alibaba PuHuiTi 3.0", "Alibaba PuHuiTi 3.0", "Alibaba PuHuiTi 3.0"),
+               ("Source Han Sans CN", "Source Han Sans CN", "Alibaba PuHuiTi 3.0")],
+    "sharp": [("Smiley Sans", "Source Han Sans CN", "Smiley Sans"),
+              ("Smiley Sans", "Alibaba PuHuiTi 3.0", "Smiley Sans")],
+    "classic": [("Source Han Serif CN", "Source Han Serif CN", "Alibaba PuHuiTi 3.0"),
+                ("LXGW WenKai", "LXGW WenKai", "Source Han Sans CN")],
+    "neutral": [("Source Han Sans CN", "Source Han Sans CN", "Alibaba PuHuiTi 3.0"),
+                ("Alibaba PuHuiTi 3.0", "Alibaba PuHuiTi 3.0", "Source Han Sans CN")],
+}
+
+# 布局池：不同语言偏好的图片布置（默认仍会全轮换）
+LAYOUT_POOL = {
+    "sweet": ["side-r", "inset", "stack", "side-l"],
+    "iron": ["full", "stack", "side-l", "side-r"],
+    "paper": ["inset", "side-r", "side-l", "stack"],
+    "grid": ["side-r", "side-l", "stack", "full"],
+    "manifesto": ["full", "side-l", "stack", "side-r"],
+}
+
 STYLE_FIELDS = {
     "paper", "paper_alt", "ink", "title_c", "body_c", "meta_c", "accent",
     "accent2", "rule_c", "panel_c", "panel_alpha", "on_dark",
@@ -285,6 +313,13 @@ STYLE_FIELDS = {
     "leading", "body_leading", "bold_title", "tracking_label", "label_case",
     "margin", "head_top", "gutter", "columns",
 }
+
+
+def pick_fonts(lang, which=0, seed=0):
+    """从字体池里取一组（展示/正文/小字），用于「不锁死字体」。"""
+    pool = FONT_POOL.get(getattr(lang, "font_tone", "modern"), FONT_POOL["modern"])
+    disp, body, micro = pool[(seed + which) % len(pool)]
+    return {"ea_display": disp, "ea_body": body, "ea_micro": micro}
 
 
 def derive(base, style):
@@ -371,3 +406,7 @@ def paper_for(lang: Lang, tone: str) -> str:
     if tone == "sand":
         return "F7EFE6"
     return lang.paper
+
+
+# 布局池在文件末尾才有，这里补上（LANGS 是同一个 dict，直接换值）
+LANGS = {k: replace(v, layout_pool=tuple(LAYOUT_POOL[k])) for k, v in LANGS.items()}
