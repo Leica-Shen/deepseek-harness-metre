@@ -1,7 +1,7 @@
 """studio：度量驱动的幻灯片引擎。"""
 from __future__ import annotations
 
-__version__ = "4.1.0"
+__version__ = "4.2.0"
 __codename__ = "格律"
 
 
