@@ -111,7 +111,7 @@ class Ctx:
         if page.get("panel"):
             self.panel_c = str(page["panel"])
         self.bg_hint = self.bg
-        self.meta_c = ("C7CDD6" if self.dark else ink_on(lang.meta_c, self.bg, 4.8))
+        self.meta_c = ("C7CDD6" if self.dark else ink_on(lang.meta_c, self.bg, 5.4))
         self.rule_c = ("46505E" if self.dark else ink_on(lang.rule_c, self.bg, 1.25))
         if self.dark:
             self.accent = ink_on(lang.accent2 or lang.accent, lang.paper_alt, 3.0)
@@ -340,6 +340,85 @@ def side_media(ctx, frac=0.38, side="r"):
     ctx.foot_span = (iw + gap, W - iw - gap - ctx.lang.margin)
     return (iw + gap, W - iw - gap - ctx.lang.margin)
 
+
+def _largest_empty(boxes, nx=48, ny=27, pad=6.0):
+    """在已占用元素之外找最大空矩形（页面坐标）。"""
+    occ = [[False] * nx for _ in range(ny)]
+    sx, sy = W / nx, H / ny
+    for b in boxes:
+        x0 = max(0, int((b.x - pad) / sx)); x1 = min(nx, int((b.x + b.w + pad) / sx) + 1)
+        y0 = max(0, int((b.y - pad) / sy)); y1 = min(ny, int((b.y + b.h + pad) / sy) + 1)
+        for yy in range(y0, y1):
+            row = occ[yy]
+            for xx in range(x0, x1):
+                row[xx] = True
+    best = (0, 0, 0, 0, 0.0)
+    heights = [0] * nx
+    for yy in range(ny):
+        for xx in range(nx):
+            heights[xx] = 0 if occ[yy][xx] else heights[xx] + 1
+        stack = []
+        for xx in range(nx + 1):
+            h = heights[xx] if xx < nx else 0
+            start = xx
+            while stack and stack[-1][1] > h:
+                sx0, sh = stack.pop()
+                area = sh * (xx - sx0)
+                if area > best[4]:
+                    best = (sx0, yy - sh + 1, xx - sx0, sh, area)
+                start = sx0
+            stack.append((start, h))
+    gx, gy, gw, gh, _ = best
+    return Box(gx * sx, gy * sy, gw * sx, gh * sy)
+
+
+def fill_empty(ctx, idx=0):
+    """空处填图形：不是把空白框起来，而是放一个「语言的标点」。
+
+    样板里空处常被色块、细线、大号序号、六边形占一角，而不是整片描边。
+    规则：只在大而完整的空矩形里，取它的一角，放一个不超过 38% 宽的小构件。
+    """
+    live = [o["box"] for o in ctx.ops
+            if o["op"] in ("text", "media", "panel", "chart", "table")
+            and o["box"].w > 6 and o["box"].h > 6]
+    if not live:
+        return
+    rect = _largest_empty(live)
+    share = rect.w * rect.h / (W * H)
+    if share < 0.07 or share > 0.30:
+        return
+    lang = ctx.lang
+    dark = ctx.dark
+    size = min(rect.w, rect.h) * 0.34
+    size = max(46.0, min(size, 150.0))
+    # 右下角优先（视觉落点），否则左上
+    right = rect.x + rect.w - size - 14
+    bottom = rect.y + rect.h - size - 14
+    bx, by = right, bottom
+    if bx < 0 or by < 0:
+        bx, by = rect.x + 14, rect.y + 14
+
+    if lang.id == "sweet":
+        ctx.under(OPS.panel(Box(bx, by, size, size),
+                            PAL.mix(ctx.bg, ctx.accent, 0.12), 100,
+                            radius=card_radius(lang, Box(bx, by, size, size))))
+        ctx.under(OPS.dot(Box(bx + size * 0.18, by + size * 0.18, 8), ctx.accent))
+    elif lang.id == "iron":
+        ctx.under(OPS.panel(Box(bx, by + size * 0.55, size, 8), ctx.accent, 100))
+        ctx.under(OPS.rule(Box(bx, by, size, 1.2),
+                           "FFFFFF" if dark else "111111", 1.2))
+    elif lang.id == "paper":
+        ctx.under(OPS.panel(Box(bx, by, size * 0.52, size * 0.52),
+                            PAL.mix(ctx.bg, ctx.accent, 0.14), 100, radius=2))
+        ctx.under(OPS.rule(Box(bx, by - 8, size * 0.52, 1.4), ctx.accent, 1.4))
+    elif lang.id == "grid":
+        ctx.under(OPS.hexagon(Box(bx, by, size * 0.6, size * 0.6), ctx.accent, 1.0))
+    else:  # manifesto
+        ctx.under(OPS.rule(Box(bx, by, 1.2, size), ctx.accent, 1.2))
+        ctx.under(OPS.rule(Box(bx, by, size * 0.42, 1.2),
+                           "FFFFFF" if dark else "111111", 1.2))
+
+
 # ---------------------------------------------------------------- 封面
 
 
@@ -498,7 +577,14 @@ def _section(ctx):
     area = safe(lang)
     block_w = (W * 0.44) if lang.id != "iron" else (W * 0.46)
     block_c = ctx.panel_c if not ctx.dark else PAL.mix(lang.paper_alt, "FFFFFF", 0.06)
-    ctx.under(OPS.panel(Box(0, 0, block_w, H), block_c, 100))
+    img = p.get("image")
+    if _img_ok(img):
+        ctx.out(OPS.media(Box(block_w, 0, W - block_w, H), img, fit="cover",
+                          focus=p.get("focus", (0.5, 0.5)),
+                          grayscale=(lang.media.grayscale or bool(p.get("mono")))))
+        ctx.under(OPS.panel(Box(0, 0, block_w, H), block_c, 100))
+    else:
+        ctx.under(OPS.panel(Box(0, 0, block_w, H), block_c, 100))
     inner = Box(lang.margin, lang.margin, block_w - lang.margin * 1.5,
                 H - lang.margin * 2)
     y = inner.y + H * 0.06
@@ -1115,9 +1201,19 @@ def _compare(ctx):
     if not cols:
         return _split(ctx)
     side = None
+    img_cmp = p.get("image")
+    colw = (W - 2 * lang.margin) * 0.82
+    if _img_ok(img_cmp):
+        iw = W * 0.26
+        ctx.out(OPS.media(Box(W - iw, 0, iw, H), img_cmp, fit="cover",
+                          focus=p.get("focus", (0.5, 0.5))))
+        colw = (W - iw) - lang.margin * 1.4
+        ctx.foot_span = (lang.margin, colw)
     ctx.head(title, kicker=_txt(p.get("kicker")), lead=_txt(p.get("lead")),
-             width=(W - 2 * lang.margin) * 0.82)
+             width=colw)
     body = ctx.body_area(gap_after_head=30, foot_h=34)
+    if _img_ok(img_cmp):
+        body = Box(body.x, body.y, colw, body.h)
     n = max(1, len(cols))
     gutter = 54
     cw = (body.w - gutter * (n - 1)) / n
@@ -1877,12 +1973,14 @@ def assign_images(items, pool):
     count = 0
     for k, it in enumerate(items):
         p, kind = it["page"], it["kind"]
-        if _img_ok(p.get("image")) or kind == "section":
+        if _img_ok(p.get("image")):
             continue
         if kind == "closing":
             if not _img_ok(p.get("image")):
                 p["image"] = pool[-1]
                 count += 1
+            if str(p.get("variant") or "") in ("block", "quiet", ""):
+                p["variant"] = "full"
             continue
         if kind == "statement":
             p["image"] = pick()
@@ -1912,7 +2010,7 @@ def assign_images(items, pool):
 
     total = len(items)
     guard = 0
-    while sum(1 for it in items if renders_image(it)) / max(1, total) < 0.8 and guard < total:
+    while sum(1 for it in items if renders_image(it)) / max(1, total) < 1.0 and guard < total:
         guard += 1
         for it in items:
             p, kind = it["page"], it["kind"]
@@ -1924,6 +2022,9 @@ def assign_images(items, pool):
                 p["image"] = pick()
                 p["variant"] = "image"
                 break
+            if kind in ("compare", "section", "chart") and not p.get("image"):
+                p["image"] = pick()
+                break
     return count
 
 
@@ -1933,6 +2034,23 @@ def build_deck(content, base_dir="."):
     lang = LG.get(content.get("language") or content.get("profile") or "me")
     # 主题（品牌色 / 情绪）先于显式 style
     theme_ov = THEME.resolve(content)
+    _theme = content.get("theme") if isinstance(content.get("theme"), dict) else {}
+    _pfile = _theme.get("palette_file") or content.get("palette_file")
+    if _pfile:
+        try:
+            _pp = _pfile if os.path.isabs(str(_pfile)) else os.path.join(base_dir, str(_pfile))
+            _pd = json.load(open(_pp, encoding="utf8"))
+            _theme = dict(_theme)
+            for k in ("paper", "ink", "accent", "accent2"):
+                if _pd.get(k):
+                    _theme.setdefault(k, _pd[k])
+            if _pd.get("accents") and not _theme.get("accents"):
+                _theme["accents"] = _pd["accents"]
+            content["theme"] = _theme
+        except Exception:
+            pass
+    ACCENTS = [str(c).lstrip("#").upper() for c in (_theme.get("accents") or [])
+               if isinstance(c, str) and len(c.strip().lstrip("#")) == 6]
     layouts = theme_ov.pop("__layouts", None)
     if theme_ov:
         lang = LG.derive(lang, theme_ov)
@@ -1993,11 +2111,18 @@ def build_deck(content, base_dir="."):
         for c in (p.get("cards") or []):
             if isinstance(c, dict) and c.get("image") and not os.path.isabs(str(c["image"])):
                 c["image"] = os.path.normpath(os.path.join(base_dir, str(c["image"])))
+        if ACCENTS and not p.get("accent"):
+            p["accent"] = ACCENTS[(i - 1) % len(ACCENTS)]
         ctx = Ctx(lang, p, i, len(items), tone=it["tone"],
                   variant=(p.get("variant") or it["variant"]),
                   brand=brand, deck_pal=deck_pal)
         fn = COMPOSITIONS[it["kind"]]
         bg = fn(ctx)
+        if p.get("fill_empty", True) and it["kind"] not in ("cover", "closing", "gallery"):
+            try:
+                fill_empty(ctx, i)
+            except Exception:
+                pass
         # 常规页统一页脚；封面/章节/结尾自己处理
         if it["kind"] in ("points", "split", "gallery", "compare", "quote") and not ctx.has_foot:
             ctx.foot(_txt(p.get("source")))

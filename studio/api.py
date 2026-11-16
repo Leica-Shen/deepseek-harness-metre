@@ -76,7 +76,7 @@ def spec():
             "margins_pt": l.margin, "gutter_pt": l.gutter,
         })
     return {
-        "name": "metre", "version": "5.0.0",
+        "name": "metre", "version": "5.1.0",
         "content_fields": CONTENT_FIELDS,
         "page_fields": PAGE_FIELDS,
         "page_kinds": PAGE_KINDS,

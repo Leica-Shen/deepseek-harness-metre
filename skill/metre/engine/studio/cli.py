@@ -72,6 +72,7 @@ def main(argv=None):
   python3 -m studio.cli build deck.json out.pptx --png preview/
   python3 -m studio.cli new > deck.json            # 空内容骨架
   python3 -m studio.cli fetch assets/咖啡 "coffee roasting|espresso" --n 6   # 联网取图
+  python3 -m studio.cli palette topic=咖啡 out=palette.json   # 上网查配色
   python3 -m studio.cli selftest                   # 自检：版式/确定性/安全/规模
 """)
         return 0
@@ -105,6 +106,19 @@ def main(argv=None):
             ],
         }
         print(json.dumps(skeleton, ensure_ascii=False, indent=2))
+        return 0
+    if cmd == "palette":
+        from . import colorlab as CL
+        import json as _json
+        args = dict(a.split("=", 1) for a in argv[1:] if "=" in a)
+        out = args.pop("out", "palette.json")
+        mode = args.pop("mode", "analogic")
+        d = CL.suggest(topic=args.get("topic"), seed=args.get("seed"),
+                       mood=args.get("mood"), mode=mode)
+        _json.dump(d, open(out, "w", encoding="utf8"), ensure_ascii=False, indent=2)
+        print(f"→ {out}")
+        print(f"  纸 {d['paper']}  墨 {d['ink']}  强调 {d['accent']}  备选 {', '.join(d['accents'])}")
+        print(f"  对比度 强调/纸 {d['checks']['accent_vs_paper']}:1  墨/纸 {d['checks']['ink_vs_paper']}:1")
         return 0
     if cmd == "style":
         import json as _json

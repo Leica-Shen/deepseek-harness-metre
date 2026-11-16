@@ -309,9 +309,9 @@ def audit(pages, lang, banned=()):
     if pages and any(p.get("has_img") for p in pages) is not None:
         n_img = sum(1 for p in pages if p.get("has_img"))
         ratio = n_img / max(1, len(pages))
-        if ratio < 0.8:
+        if ratio < 1.0:
             issues.append(("warn", "配图不足", 0,
-                           f"{n_img}/{len(pages)} 页有图（目标 ≥80%）"))
+                           f"{n_img}/{len(pages)} 页有图（目标：每页至少 1 张）"))
 
     # ---- 8 指纹
     # 不依赖任何样板文案：结构性识别「水印式」重复与角落低透明度字

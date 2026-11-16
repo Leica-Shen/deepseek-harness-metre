@@ -170,8 +170,9 @@ def run(deck_paths, out_dir=None, verbose=True):
         if hard:
             row["errors"] += [f"版式：{m}（P{pi}）{d}" for _, m, pi, d in hard[:4]]
             ok = False
-        if row["img_ratio"] < 0.8 and len(pages) >= 5:
-            row["errors"].append(f"配图：{row['img_ratio']:.0%} < 80%")
+        has_pool = bool(content.get("assets") or content.get("pool"))
+        if has_pool and row["img_ratio"] < 1.0:
+            row["errors"].append(f"配图：{row['img_ratio']:.0%} < 100%（有资产池就必须每页有图）")
             ok = False
         if max(len(p["ops"]) for p in pages) > MAX_OPS_PAGE:
             row["errors"].append("单页元素过多")
