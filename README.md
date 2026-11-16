@@ -47,6 +47,19 @@ Metre inverts the order:
 - **Self-test** — `metre selftest` asserts layout, determinism, information integrity,
   absence of leaked paths, size limits and prompt-injection safety of `SKILL.md`.
 
+## Two shapes
+
+| 形态 | 目录 | 谁用 |
+| --- | --- | --- |
+| Harness 插件 | 仓库根 | DeepSeek Harness 里作为 skill 加载 |
+| 可移植 Skill | `skill/metre/` | Claude Code / Cursor / Copilot / Agensi：带引擎，缺字体自动降级 |
+
+```bash
+cd skill/metre
+python3 tools/learn_style.py reference.pptx -o style.json   # 学一份参考文件
+python3 tools/build.py examples/mini.json out.pptx --style style.json
+```
+
 ## Install
 
 ```bash

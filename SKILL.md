@@ -1,12 +1,12 @@
 ---
 name: metre
 title: 格律 Metre
-version: 4.3.0
+version: 5.0.0
 codename: 格律
 description: 我的 PPT 设计插件。给它每页要说什么，它按我的风格排出来：真实字体度量断行、图色驱动配色、圆角与留白有规矩、出片前自审。默认就是我的风格，5 种设计语言只是变奏。
 ---
 
-# 格律 Metre · 4.3
+# 格律 Metre · 5.0
 
 **一句话**：这是我的设计插件——**默认出品就是我的风格**，不是通用模板。
 你（Agent）决定每页说什么，引擎按我的规矩排；`language` 只是换一种语气。
@@ -115,6 +115,29 @@ python3 -m studio.cli build … --png …     # 目视一遍 preview/
 ```
 
 体检报告的「合规分」= 100 − 硬伤×12 − 待调×3，衡量**没犯多少规矩**，不是设计质量分。
+
+## 作为可移植 Skill 使用（Agensi / Claude Code / Cursor）
+
+`skill/metre/` 是一个自带引擎的独立包：
+
+```
+skill/metre/
+  SKILL.md            判断优先的技能文档（给 Agent 读）
+  references/         判断、字体、配色、版式、检查清单
+  tools/learn_style.py 从参考 pptx 量设计参数（只用标准库）
+  tools/build.py      用内置引擎出片
+  engine/             引擎本体（无外部依赖，缺字体自动降级）
+  examples/mini.json  最小示例
+```
+
+```bash
+cd skill/metre
+python3 tools/learn_style.py 参考.pptx -o style.json
+python3 tools/build.py examples/mini.json out.pptx --style style.json
+```
+
+这一份可以不依赖本机 macOS 字体：缺字体时字宽用经验值（CJK 1.0em），
+排版规则照旧；要精确断行，装对应字体即可。
 
 ## 文档索引
 

@@ -311,7 +311,7 @@ STYLE_FIELDS = {
     "display", "body_font", "micro_font", "ea_display", "ea_body", "ea_micro",
     "radius_ratio", "shadow", "align_bias", "center_kinds",
     "leading", "body_leading", "bold_title", "tracking_label", "label_case",
-    "margin", "head_top", "gutter", "columns", "font_tone",
+    "margin", "head_top", "gutter", "columns", "font_tone", "layout_pool",
 }
 
 
@@ -332,7 +332,7 @@ def derive(base, style):
             continue
         if k == "shadow" and isinstance(v, (list, tuple)):
             v = tuple(v)
-        if k == "center_kinds" and isinstance(v, list):
+        if k in ("center_kinds", "layout_pool") and isinstance(v, list):
             v = tuple(v)
         if k == "columns":
             v = int(v)

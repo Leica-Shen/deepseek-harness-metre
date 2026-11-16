@@ -1,0 +1,11 @@
+{
+  "theme": {"mood": "editorial", "brand_color": "C0552B"},
+  "variation": 3,
+  "pages": [
+    {"kind": "cover", "kicker": "2026", "title": "一句话说清这册讲什么", "sub": "副题"},
+    {"kind": "points", "title": "三件事", "items": ["第一件", "第二件", "第三件"]},
+    {"kind": "metrics", "title": "三个数", "metrics": [{"v": "42", "l": "转化率 %"}, {"v": "18", "l": "周期（周）"}]},
+    {"kind": "quote", "quote": "把复杂留给自己，把简单交给读者。", "by": "设计笔记"},
+    {"kind": "closing", "title": "下一步", "sub": "联系人"}
+  ]
+}

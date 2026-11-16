@@ -13,6 +13,7 @@ import os
 import random
 
 from . import languages as LG
+from . import theme as THEME
 from . import palette as PAL
 from .languages import accent_text, ink_on, contrast
 from . import layout as LY
@@ -1930,8 +1931,15 @@ def build_deck(content, base_dir="."):
     """content(dict) → (pages, info)。pages 给渲染器用。"""
     # 默认就是「我的风格」；language 只是变奏
     lang = LG.get(content.get("language") or content.get("profile") or "me")
+    # 主题（品牌色 / 情绪）先于显式 style
+    theme_ov = THEME.resolve(content)
+    layouts = theme_ov.pop("__layouts", None)
+    if theme_ov:
+        lang = LG.derive(lang, theme_ov)
     if content.get("style"):
         lang = LG.derive(lang, content["style"])
+    if layouts:
+        lang = LG.derive(lang, {"layout_pool": tuple(layouts)})
     raw = copy.deepcopy(content.get("pages") or [])
     # 字体不锁死：没指定就按气质从池里取一组；给了 dict 就覆盖
     fonts = content.get("fonts")

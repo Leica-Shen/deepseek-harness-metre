@@ -1,0 +1,38 @@
+{
+  "name": "默认风格（我的）",
+  "note": "这是 Metre 的默认：不指定 language 时用它。数值来自 5 份样板的实测 + 我在会话里明确过的偏好；改这里就等于改默认出品。",
+  "base": "grid",
+  "palette": {
+    "paper": "FBFAF7",
+    "paper_alt": "141414",
+    "ink": "1A1A1A",
+    "title_c": "161616",
+    "body_c": "3A3A3A",
+    "meta_c": "7A7A7A",
+    "accent": "C0552B",
+    "accent2": "E8B96A",
+    "rule_c": "D8D2C8",
+    "panel_c": "F1EDE6"
+  },
+  "type_tone": "classic",
+  "radius_ratio": 0.1667,
+  "shadow": [10, 4, 0, 18],
+  "align_bias": "mixed",
+  "center_kinds": ["statement", "quote", "metrics", "closing"],
+  "margins_pt": 48,
+  "gutter_pt": 22,
+  "leading": 1.12,
+  "body_leading": 1.45,
+  "image_policy": {
+    "min_ratio": 0.8,
+    "prefer": ["stack", "side-r", "inset", "full"],
+    "treat": "cover-crop, 不重复同一张"
+  },
+  "rules": [
+    "不复制任何样板的具体页面（水印、吉祥物、固定照片、巨型首字母）",
+    "中文不默认宋体/苹方：按气质从字体池取",
+    "一页一观点：要点 ≤5、指标 ≤4",
+    "颜色不写死：有图就跟着图走，单页可覆盖",
+    "版式按种子轮换，不连续两页同一图文关系"
+  ]
+}

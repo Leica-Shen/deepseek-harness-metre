@@ -78,14 +78,26 @@ def _pil(family: str, bold: bool):
     path, idx = faces[1 if bold else 0]
     try:
         return ImageFont.truetype(path, int(_PROBE), index=idx)
-    except Exception as exc:
+    except Exception:
         try:
             path, idx = faces[0]
             return ImageFont.truetype(path, int(_PROBE), index=idx)
         except Exception:
-            raise RuntimeError(
-                f"缺少字体文件 {path}（{family}）。Metre 在 macOS 上用系统字体度量；"
-                f"请安装 {family} 或改 languages.py 的字体配置。原始错误：{exc}")
+            # 跨平台降级：没有字体文件就用经验比例，不再崩
+            _warn_missing(family)
+            return None
+
+
+_WARNED = set()
+
+
+def _warn_missing(family):
+    if family in _WARNED:
+        return
+    _WARNED.add(family)
+    import sys
+    print(f"[metre] 没有 {family} 的字体文件，改用经验字宽（CJK 1.0em / 拉丁 0.55em）；"
+          f"排版仍可用，但精确断行需要在有该字体的机器上跑。", file=sys.stderr)
 
 
 @lru_cache(maxsize=20000)
@@ -94,6 +106,15 @@ def _ratio(family: str, bold: bool, ch: str) -> float:
     if is_wide(ch):
         return 1.0
     f = _pil(family, bold)
+    if f is None:
+        # 经验值：拉丁小写 0.52、大写 0.66、数字 0.55、空格 0.26
+        if ch == " ":
+            return 0.26
+        if ch.isdigit():
+            return 0.55
+        if ch.isupper():
+            return 0.66
+        return 0.52
     try:
         return f.getlength(ch) / _PROBE
     except Exception:
@@ -103,6 +124,8 @@ def _ratio(family: str, bold: bool, ch: str) -> float:
 @lru_cache(maxsize=64)
 def _vm(family: str, bold: bool):
     f = _pil(family, bold)
+    if f is None:
+        return 0.80, 0.20
     try:
         asc, desc = f.getmetrics()
     except Exception:

@@ -1,6 +1,6 @@
 {
   "name": "@local/metre",
-  "version": "4.3.0",
+  "version": "5.0.0",
   "private": true,
   "type": "module",
   "description": "我的 PPT 设计插件：默认按我的风格排版，五种设计语言只是变奏",
