@@ -348,9 +348,14 @@ ALIASES = {
 
 
 def get(pid: str) -> Lang:
-    key = ALIASES.get(str(pid).strip().lower()) or ALIASES.get(str(pid).strip())
+    raw = str(pid).strip()
+    if raw.lower() in ("me", "mine", "default", "我", "我的"):
+        if "me" in LANGS:
+            return LANGS["me"]
+    key = ALIASES.get(raw.lower()) or ALIASES.get(raw)
     if not key:
-        raise KeyError(f"未知设计语言：{pid}；可用：01/02/03/04/05 或 sweet/iron/paper/grid/manifesto")
+        legal = "/".join(k for k in LANGS)
+        raise KeyError(f"未知设计语言：{pid}；可用：me（默认）或 {legal}")
     return LANGS[key]
 
 
@@ -408,5 +413,41 @@ def paper_for(lang: Lang, tone: str) -> str:
     return lang.paper
 
 
+def _load_me():
+    """把 style/me.json 变成一种可选语言（默认）。用户改那一份就等于改默认出品。"""
+    import json
+    import os
+    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    fp = os.path.join(here, "style", "me.json")
+    try:
+        d = json.load(open(fp, encoding="utf8"))
+    except Exception:
+        return None
+    base = LANGS.get(d.get("base") or "grid")
+    if base is None:
+        return None
+    pal = d.get("palette") or {}
+    override = dict(pal)
+    for k, v in (("radius_ratio", d.get("radius_ratio")),
+                 ("shadow", tuple(d["shadow"]) if d.get("shadow") else ()),
+                 ("align_bias", d.get("align_bias")),
+                 ("center_kinds", tuple(d.get("center_kinds") or ())),
+                 ("margin", d.get("margins_pt")), ("gutter", d.get("gutter_pt")),
+                 ("leading", d.get("leading")), ("body_leading", d.get("body_leading"))):
+        if v is not None:
+            override[k] = v
+    if d.get("type_tone"):
+        override["font_tone"] = d["type_tone"]
+    me = derive(base, override)
+    return replace(me, id="me", name=d.get("name", "默认风格"),
+                   tagline=d.get("note", "")[:60],
+                   layout_pool=tuple(d.get("image_policy", {}).get("prefer")
+                                     or LAYOUT_POOL.get(base.id, ())))
+
+
 # 布局池在文件末尾才有，这里补上（LANGS 是同一个 dict，直接换值）
 LANGS = {k: replace(v, layout_pool=tuple(LAYOUT_POOL[k])) for k, v in LANGS.items()}
+
+_ME = _load_me()
+if _ME is not None:
+    LANGS["me"] = _ME

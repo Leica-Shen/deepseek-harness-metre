@@ -1928,7 +1928,8 @@ def assign_images(items, pool):
 
 def build_deck(content, base_dir="."):
     """content(dict) → (pages, info)。pages 给渲染器用。"""
-    lang = LG.get(content.get("language") or content.get("profile") or "grid")
+    # 默认就是「我的风格」；language 只是变奏
+    lang = LG.get(content.get("language") or content.get("profile") or "me")
     if content.get("style"):
         lang = LG.derive(lang, content["style"])
     raw = copy.deepcopy(content.get("pages") or [])

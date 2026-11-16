@@ -1,9 +1,9 @@
 {
   "name": "@local/metre",
-  "version": "4.2.0",
+  "version": "4.3.0",
   "private": true,
   "type": "module",
-  "description": "Metre 格律：度量驱动的幻灯片引擎。真实字宽 + 最优断行 + 纵向分布律 + 留白审计；五种设计语言各配中文字族；联网取图并支持形状/文字填充。",
+  "description": "我的 PPT 设计插件：默认按我的风格排版，五种设计语言只是变奏",
   "main": "lib/index.js",
   "exports": {
     ".": "./lib/index.js",

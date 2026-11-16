@@ -106,6 +106,28 @@ def main(argv=None):
         }
         print(json.dumps(skeleton, ensure_ascii=False, indent=2))
         return 0
+    if cmd == "style":
+        import json as _json
+        from . import languages as LG
+        me = LG.LANGS.get("me")
+        if not me:
+            print("没有 style/me.json；先用默认设置")
+            return 1
+        if argv[1:2] and argv[1].startswith("--set"):
+            kv = argv[1][6:] if "=" in argv[1] else ""
+            print("改风格请直接编辑 style/me.json（这是单一事实源）")
+            return 0
+        print(f"当前默认风格：{me.name}")
+        print(f"  纸 {me.paper}  墨 {me.title_c}  强调 {me.accent}  底板 {me.panel_c}")
+        pool = LG.FONT_POOL.get(me.font_tone, [])
+        names = " / ".join(t[0] for t in pool) or me.ea_display
+        print(f"  字体池 {me.font_tone}：{names}")
+        print(f"  圆角 {me.radius_ratio:.2f}  "
+              f"阴影 {'无' if not me.shadow else list(me.shadow)}")
+        print(f"  对齐 {me.align_bias}  居中页型 {','.join(me.center_kinds) or '无'}")
+        print(f"  边距 {me.margin}pt  布局偏好 {','.join(me.layout_pool)}")
+        print(f"  文件 style/me.json")
+        return 0
     if cmd == "selftest":
         from . import selftest as ST
         root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

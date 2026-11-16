@@ -2,9 +2,10 @@
 
 **GitHub:** [Leica-Shen/deepseek-harness-metre](https://github.com/Leica-Shen/deepseek-harness-metre)
 
-**A measurement-driven slide engine for [DeepSeek Harness](https://github.com/deepseek-ai).**
-Write what each page should say; Metre measures the text, breaks the lines, places the blocks,
-sources the images and audits the result. Five design languages, no template copying.
+**A personal design agent for [DeepSeek Harness](https://github.com/deepseek-ai).**
+Write what each page should say; Metre lays it out **in my style** — measured type, my palette,
+my margins, my rules. The five design languages are variations, not a catalogue.
+The default style lives in `style/me.json`: change that file, change the output.
 
 > 中文名「格律」：格是网格，律是节奏。先量字，再排版。
 
